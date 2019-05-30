@@ -1,11 +1,14 @@
 package Analysis;
 
+import Analysis.Transformers.MyBodyTransformer;
 import Analysis.Transformers.MySceneTransformer;
+import fj.P;
 import soot.*;
 import soot.options.Options;
 import soot.util.Chain;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 
 public class RunAnalysis {
@@ -19,6 +22,7 @@ public class RunAnalysis {
                 "jimple");
 
         runPack();
+//        inspect();
 
     }
 
@@ -45,13 +49,18 @@ public class RunAnalysis {
     }
 
     private static void runPack(){
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.myAnalysis", new SceneTransformer() {
-            @Override
-            protected void internalTransform(String s, Map<String, String> map) {
-                //new code in for customized jimple transformation
-                G.v().out.println(map);
-            }
-        }));
+        PackManager.v().getPack("jtp").add(
+                new Transform("jtp.myAnalysis", new MyBodyTransformer())
+        );
+
+        PackManager.v().runPacks();
+//        PackManager.v().writeOutput();
+    }
+
+    private static void runWholeProgramPack(){
+        PackManager.v().getPack("wjtp").add(
+                new Transform("wjtp.myAnalysis", new MySceneTransformer())
+        );
 
         PackManager.v().runPacks();
         PackManager.v().writeOutput();
