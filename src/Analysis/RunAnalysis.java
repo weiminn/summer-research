@@ -7,7 +7,9 @@ import soot.*;
 import soot.options.Options;
 import soot.util.Chain;
 
+import javax.print.attribute.standard.DateTimeAtCompleted;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -21,8 +23,15 @@ public class RunAnalysis {
                 Options.output_format_jimple,
                 "jimple");
 
+//        initializeSoot(
+//                Options.src_prec_java,
+//                false,
+//                "./sample/java",
+//                Options.output_format_jimple,
+//                "jimple");
+
         runPack();
-//        inspect();
+
 
     }
 
@@ -49,8 +58,9 @@ public class RunAnalysis {
     }
 
     private static void runPack(){
+        String ts = new Date().toString();
         PackManager.v().getPack("jtp").add(
-                new Transform("jtp.myAnalysis", new MyBodyTransformer())
+                new Transform("jtp.myAnalysis", new MyBodyTransformer(ts))
         );
 
         PackManager.v().runPacks();
