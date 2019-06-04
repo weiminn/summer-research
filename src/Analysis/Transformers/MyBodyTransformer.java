@@ -1,6 +1,6 @@
 package Analysis.Transformers;
 
-import org.graphstream.graph.Graph;
+//import org.graphstream.graph.Graph;
 import soot.Body;
 import soot.BodyTransformer;
 import soot.PatchingChain;
@@ -31,7 +31,7 @@ public class MyBodyTransformer extends BodyTransformer {
 
 
         Chain<Unit> unitChain = body.getUnits().getNonPatchingChain();
-//        Iterable<Unit> units = (Iterable<Unit>) body.getUnits().iterator();
+//        Iterator<Unit> units = (Iterator<Unit>) body.getUnits().iterator();
 
         try {
             FileWriter writer = new FileWriter("./sootOutput/logs/" + ts + ".txt", true);

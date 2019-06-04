@@ -1,41 +1,42 @@
 package Analysis;
 
+import Analysis.Transformers.CallGraph.CHATransformer;
+import Analysis.Transformers.CallGraph.SPARKTransformer;
 import Analysis.Transformers.MyBodyTransformer;
 import Analysis.Transformers.MySceneTransformer;
 import fj.P;
 import soot.*;
+import soot.jimple.spark.SparkTransformer;
+import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.options.Options;
 import soot.util.Chain;
 
 import javax.print.attribute.standard.DateTimeAtCompleted;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 public class RunAnalysis {
     public static void main(String[] args){
 
-        initializeSoot(
-                Options.src_prec_apk,
-                true,
-                "./sample/apk/HelloWorld.apk",
-                Options.output_format_jimple,
-                "jimple");
-
 //        initializeSoot(
-//                Options.src_prec_java,
-//                false,
-//                "./sample/java",
+//                Options.src_prec_apk,
+//                true,
+//                "./sample/apk/HelloWorld.apk",
 //                Options.output_format_jimple,
-//                "jimple");
+//                "jimple",
+//                true);
 
-        runPack();
+        initializeSoot(
+                Options.src_prec_java,
+                false,
+                "./sample/java",
+                Options.output_format_jimple,
+                "jimple",
+                true);
 
 
     }
 
-    private static void initializeSoot(int srcPrec, boolean phantomRefs, String processDir, int outputFormat, String outputDir){
+    private static void initializeSoot(int srcPrec, boolean phantomRefs, String processDir, int outputFormat, String outputDir, boolean wholeProgram){
 
         G.v().reset();
 
@@ -47,6 +48,22 @@ public class RunAnalysis {
         Options.v().set_force_android_jar("./lib/android/android.jar");
         Options.v().set_allow_phantom_refs(phantomRefs);
 
+        if(wholeProgram){
+            // Enable whole-program mode
+            Options.v().set_whole_program(true);
+            Options.v().set_app(true);
+
+//            // Call-graph options
+//            Options.v().setPhaseOption("cg", "safe-newinstance:true");
+//            Options.v().setPhaseOption("cg.cha","enabled:false");
+//
+//            // Enable SPARK call-graph construction
+//            Options.v().setPhaseOption("cg.spark","enabled:true");
+//            Options.v().setPhaseOption("cg.spark","verbose:true");
+//            Options.v().setPhaseOption("cg.spark","on-fly-cg:true");
+//            Options.v().setPhaseOption("cg.spark","set-impl:array");
+        }
+
         Options.v().set_process_dir(Collections.singletonList(processDir));
         Options.v().set_src_prec(srcPrec);
 
@@ -54,6 +71,12 @@ public class RunAnalysis {
         Options.v().set_output_dir("./sootOutput/" + outputDir + "/");
 
         Scene.v().loadNecessaryClasses();
+
+        if(wholeProgram){
+            runWholeProgramPack();
+        } else {
+            runPack();
+        }
 
     }
 
@@ -68,12 +91,14 @@ public class RunAnalysis {
     }
 
     private static void runWholeProgramPack(){
+        String ts = new Date().toString();
         PackManager.v().getPack("wjtp").add(
-                new Transform("wjtp.myAnalysis", new MySceneTransformer())
+            new Transform("wjtp.cha", new CHATransformer())
+//            new Transform("wjtp.spark", new SPARKTransformer())
         );
 
         PackManager.v().runPacks();
-        PackManager.v().writeOutput();
+//        PackManager.v().writeOutput();
     }
 
     private static void inspect(){

@@ -6,6 +6,10 @@ public class TestApp {
 
     private static int test(){
         System.out.println("custom test statement!");
+        Car newCar = new Car();
+        for(int i = 0; i < 3; i++){
+            newCar.drive();
+        }
         return 1;
     }
 }
