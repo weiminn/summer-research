@@ -1,17 +1,11 @@
 package Analysis;
 
-import Analysis.Transformers.CallGraph.CHATransformer;
-import Analysis.Transformers.CallGraph.SPARKTransformer;
+import Analysis.Transformers.CallGraph.MyCHATransformer;
 import Analysis.Transformers.MyBodyTransformer;
-import Analysis.Transformers.MySceneTransformer;
-import fj.P;
 import soot.*;
-import soot.jimple.spark.SparkTransformer;
-import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.options.Options;
 import soot.util.Chain;
 
-import javax.print.attribute.standard.DateTimeAtCompleted;
 import java.util.*;
 
 public class RunAnalysis {
@@ -27,7 +21,7 @@ public class RunAnalysis {
 
         initializeSoot(
                 Options.src_prec_java,
-                false,
+                true,
                 "./sample/java",
                 Options.output_format_jimple,
                 "jimple",
@@ -47,6 +41,7 @@ public class RunAnalysis {
         Options.v().set_soot_classpath("/usr/local/lib/jdk1.7.0_80/jre/lib/rt.jar");
         Options.v().set_force_android_jar("./lib/android/android.jar");
         Options.v().set_allow_phantom_refs(phantomRefs);
+        Options.v().set_no_bodies_for_excluded(true);
 
         if(wholeProgram){
             // Enable whole-program mode
@@ -93,7 +88,7 @@ public class RunAnalysis {
     private static void runWholeProgramPack(){
         String ts = new Date().toString();
         PackManager.v().getPack("wjtp").add(
-            new Transform("wjtp.cha", new CHATransformer())
+            new Transform("wjtp.mycha", new MyCHATransformer())
 //            new Transform("wjtp.spark", new SPARKTransformer())
         );
 
