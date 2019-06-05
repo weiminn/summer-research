@@ -1,6 +1,7 @@
 package Analysis;
 
 import Analysis.Transformers.CallGraph.MyCHATransformer;
+import Analysis.Transformers.CallGraph.MySPARKTransformer;
 import Analysis.Transformers.MyBodyTransformer;
 import soot.*;
 import soot.options.Options;
@@ -11,21 +12,21 @@ import java.util.*;
 public class RunAnalysis {
     public static void main(String[] args){
 
-//        initializeSoot(
-//                Options.src_prec_apk,
-//                true,
-//                "./sample/apk/HelloWorld.apk",
-//                Options.output_format_jimple,
-//                "jimple",
-//                true);
-
         initializeSoot(
-                Options.src_prec_java,
+                Options.src_prec_apk,
                 true,
-                "./sample/java",
+                "./sample/apk/HelloWorld.apk",
                 Options.output_format_jimple,
                 "jimple",
                 true);
+
+//        initializeSoot(
+//                Options.src_prec_java,
+//                true,
+//                "./sample/java",
+//                Options.output_format_jimple,
+//                "jimple",
+//                true);
 
 
     }
@@ -35,13 +36,20 @@ public class RunAnalysis {
         G.v().reset();
 
         Options.v().set_process_multiple_dex(true);
-        Options.v().set_prepend_classpath(true);
+        Options.v().set_prepend_classpath(false);
         Options.v().set_validate(true);
 
         Options.v().set_soot_classpath("/usr/local/lib/jdk1.7.0_80/jre/lib/rt.jar");
         Options.v().set_force_android_jar("./lib/android/android.jar");
+
         Options.v().set_allow_phantom_refs(phantomRefs);
+        List<String> toExclude = new ArrayList<>();
+//        toExclude.add("android.");
+//        toExclude.add("com.google.");
+//        Options.v().set_exclude(toExclude);
         Options.v().set_no_bodies_for_excluded(true);
+
+        System.out.println(Options.v().exclude());
 
         if(wholeProgram){
             // Enable whole-program mode
@@ -88,8 +96,8 @@ public class RunAnalysis {
     private static void runWholeProgramPack(){
         String ts = new Date().toString();
         PackManager.v().getPack("wjtp").add(
-            new Transform("wjtp.mycha", new MyCHATransformer())
-//            new Transform("wjtp.spark", new SPARKTransformer())
+//            new Transform("wjtp.mycha", new MyCHATransformer())
+            new Transform("wjtp.spark", new MySPARKTransformer())
         );
 
         PackManager.v().runPacks();
