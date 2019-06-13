@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="soot-320">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/soot/soot-320.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/soot/soot-320.jar!/" />
+    </SOURCES>
+  </library>
+</component>

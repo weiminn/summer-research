@@ -17,6 +17,7 @@ public class MyCHATransformer extends SceneTransformer {
     protected void internalTransform(String s, Map<String, String> map) {
 
         G.v().out.println("Inititaing CHA transformation... ");
+        PhaseOptions.v().setPhaseOption("cg.cha", "enabled:true");
         CHATransformer.v().transform();
         CallGraph cg = Scene.v().getCallGraph();
 
@@ -39,7 +40,7 @@ public class MyCHATransformer extends SceneTransformer {
 
         G.v().out.println("Graph size: " + cg.size());
 
-        String fileName = "./sootOutput/graphs/" + new Date().toString() + DotGraph.DOT_EXTENSION;
+        String fileName = "./sootOutput/graphs/cha: " + new Date().toString() + DotGraph.DOT_EXTENSION;
         canvas.plot(fileName);
     }
 }

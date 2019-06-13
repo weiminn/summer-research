@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="herosclasses-trunk-jar-with-dependencies">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/lib/heros/herosclasses-trunk-jar-with-dependencies.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

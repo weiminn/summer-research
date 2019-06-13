@@ -1,9 +1,6 @@
 package Analysis.Transformers;
 
 import fj.data.Set;
-import heros.IFDSTabulationProblem;
-import heros.InterproceduralCFG;
-import heros.solver.IFDSSolver;
 import soot.*;
 import soot.jimple.DefinitionStmt;
 import soot.jimple.spark.SparkTransformer;
@@ -25,16 +22,7 @@ public class MySceneTransformer extends SceneTransformer {
     @Override
     protected void internalTransform(String phaseName, Map<String, String> map) {
 
-//        CallGraph cg = Scene.v().getCallGraph();
-//        JimpleBasedInterproceduralCFG icfg = new JimpleBasedInterproceduralCFG();
-//        IFDSTabulationProblem problem = new IFDSReachingDefinitions(icfg);
-//
-//        icfg.getOrCreateUnitGraph();
-//
-//
-//        IFDSSolver solver = new IFDSSolver(problem);
-//        System.out.println("Starting solver...");
-//        solver.solve();
-//        System.out.println("Done");
+        CallGraph cg = Scene.v().getCallGraph();
+
     }
 }

@@ -9,7 +9,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="soot-300" level="project" />
-    <orderEntry type="library" name="herosclasses-trunk-jar-with-dependencies" level="project" />
+    <orderEntry type="library" name="flowdroid-271" level="project" />
+    <orderEntry type="library" name="soot-320" level="project" />
   </component>
 </module>
