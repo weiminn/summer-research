@@ -1,7 +1,7 @@
 public class TestApp {
     public static void main(String[] args){
         System.out.println("Test App constructed");
-        test()
+        test();
     }
 
     private static int test(){

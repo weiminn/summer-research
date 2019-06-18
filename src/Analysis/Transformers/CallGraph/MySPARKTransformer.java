@@ -1,9 +1,12 @@
 package Analysis.Transformers.CallGraph;
 
+import heros.IFDSTabulationProblem;
 import soot.*;
 import soot.jimple.spark.SparkTransformer;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.ide.exampleproblems.IFDSLocalInfoFlow;
+import soot.jimple.toolkits.ide.exampleproblems.IFDSPossibleTypes;
 import soot.util.dot.DotGraph;
 import soot.util.dot.DotGraphEdge;
 import soot.util.dot.DotGraphNode;
@@ -78,13 +81,13 @@ public class MySPARKTransformer extends SceneTransformer {
 
             DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
 //            edge.setLabel(next.srcUnit().toString());
-            G.v().out.println(i++);
-            G.v().out.println(src + " to " + tgt + "\n");
+//            G.v().out.println(i++);
+//            G.v().out.println(src + " to " + tgt + "\n");
         }
 
         G.v().out.println("Graph size: " + cg.size());
 
-        String fileName = "./sootOutput/graphs/spark: " + new Date().toString() + DotGraph.DOT_EXTENSION;
+        String fileName = "./analysisOutput/graphs/spark: " + new Date().toString() + DotGraph.DOT_EXTENSION;
         canvas.plot(fileName);
     }
 }
