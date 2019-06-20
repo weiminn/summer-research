@@ -80,7 +80,7 @@ public class RunAnalysis {
         );
 
         PackManager.v().runPacks();
-        PackManager.v().writeOutput();
+//        PackManager.v().writeOutput();
 
 //        PointsToAnalysis pta2 = Scene.v().getPointsToAnalysis();
 
