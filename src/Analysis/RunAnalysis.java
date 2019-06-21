@@ -3,8 +3,11 @@ package Analysis;
 import Analysis.Transformers.CallGraph.MySPARKTransformer;
 import Analysis.Transformers.MyBodyTransformer;
 import de.bodden.tamiflex.playout.ClassDumper;
+import fj.Hash;
 import soot.*;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.android.axml.AXmlAttribute;
+import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.manifest.IManifestHandler;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.options.Options;
@@ -37,16 +40,39 @@ public class RunAnalysis {
                 "/home/wei/Android/Sdk/platforms/",
                 processDir
         );
-        Set<String> permissions = getRequestedPermissions(processDir);
+
+        HashMap manifestInfo = getRequestedPermissions(processDir);
 
         try{
-            FileWriter writer = new FileWriter("./analysisOutput/logs/" + ts + "-Manifest.txt", true);
-            Iterator<String> pSet = permissions.iterator();
+            FileWriter mWriter = new FileWriter("./analysisOutput/logs/" + ts + "-ManifestAnalysis.txt", true);
 
-            while(pSet.hasNext()){
-                writer.write(pSet.next() + "\n");
+            Set<String> pSet = (Set<String>) manifestInfo.get("permissions");
+            Iterator<String> pSetItr = pSet.iterator();
+
+            List<AXmlNode> cpList = (List<AXmlNode>) manifestInfo.get("providers");
+            Iterator<AXmlNode> cpListItr = cpList.iterator();
+
+            mWriter.write("=====================================\nPermissions Requested\n-------------------------------------\n");
+
+            while(pSetItr.hasNext()){
+                mWriter.write(pSetItr.next() + "\n");
             }
-            writer.close();
+
+            mWriter.write("\n=====================================\nContent Providers Accessed\n-------------------------------------\n");
+
+            while(cpListItr.hasNext()){
+                Map<String, AXmlAttribute<?>> attributes = cpListItr.next().getAttributes();
+
+                String cpName = attributes.get("authorities").getValue().toString();
+//                try{
+//                    String prName = attributes.get("permission").getValue().toString();
+//                } catch (Exception e){
+//
+//                }
+
+                mWriter.write(cpName + "\n");
+            }
+            mWriter.close();
 
         } catch (Exception e){
             System.err.println(e);
@@ -87,17 +113,24 @@ public class RunAnalysis {
 //        generateCallgraph();
     }
 
-    private static Set<String> getRequestedPermissions(String apkPath){
+    private static HashMap<String, Object> getRequestedPermissions(String apkPath){
 
+        HashMap<String, Object> toReturn = new HashMap<>();
         Set<String> permissions = null;
+        List<AXmlNode> providers = null;
+
         try {
             ProcessManifest manifest = new ProcessManifest(apkPath);
             permissions = manifest.getPermissions();
+            providers = manifest.getProviders();
         } catch (Exception e){
             System.err.println(e);
         }
-        return permissions;
-    }
 
+        toReturn.put("permissions", permissions);
+        toReturn.put("providers", providers);
+
+        return toReturn;
+    }
 
 }
