@@ -12,6 +12,7 @@ import soot.jimple.infoflow.android.manifest.IManifestHandler;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.options.Options;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
 
@@ -32,7 +33,7 @@ public class RunAnalysis {
 
     private static void initializeSoot(int srcPrec, boolean phantomRefs, String processDir, int outputFormat, String outputDir, boolean wholeProgram){
 
-        soot.G.reset();
+        G.v().reset();
 
         String ts = new Date().toString();
 
@@ -44,6 +45,17 @@ public class RunAnalysis {
         HashMap manifestInfo = getRequestedPermissions(processDir);
 
         try{
+
+            File logsDir = new File("./analysisOutput/logs");
+            File outDir = new File("./analysisOutput/" + outputDir);
+
+            if(!logsDir.exists()){
+                logsDir.mkdir();
+            }
+            if(!outDir.exists()){
+                outDir.mkdir();
+            }
+
             FileWriter mWriter = new FileWriter("./analysisOutput/logs/" + ts + "-ManifestAnalysis.txt", true);
 
             Set<String> pSet = (Set<String>) manifestInfo.get("permissions");
@@ -58,7 +70,7 @@ public class RunAnalysis {
                 mWriter.write(pSetItr.next() + "\n");
             }
 
-            mWriter.write("\n=====================================\nContent Providers Accessed\n-------------------------------------\n");
+            mWriter.write("\n=====================================\nContent Providers Registered\n-------------------------------------\n");
 
             while(cpListItr.hasNext()){
                 Map<String, AXmlAttribute<?>> attributes = cpListItr.next().getAttributes();
