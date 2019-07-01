@@ -17,7 +17,6 @@ public class MyCHATransformer extends SceneTransformer {
     protected void internalTransform(String s, Map<String, String> map) {
 
         G.v().out.println("Inititaing CHA transformation... ");
-        PhaseOptions.v().setPhaseOption("cg.cha", "enabled:true");
         CHATransformer.v().transform();
         CallGraph cg = Scene.v().getCallGraph();
 
