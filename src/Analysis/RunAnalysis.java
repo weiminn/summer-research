@@ -34,12 +34,19 @@ public class RunAnalysis {
         initializeSoot(
                 Options.src_prec_apk,
                 true,
-                "sample/apk/" +
-                        "textra" +
+                "sample/apk/boosted/" +
+                        "textra_boosted" +
                         ".apk",
                 Options.output_format_dex,
                 "dex",
                 true);
+
+        initializeFlowdroid(
+                "sample/apk/boosted/" +
+                "textra_boosted" +
+                ".apk");
+
+        generateGraph();
 
     }
 
@@ -68,7 +75,9 @@ public class RunAnalysis {
         Options.v().set_app(true);
 
         Scene.v().loadNecessaryClasses();
+    }
 
+    private static void initializeFlowdroid(String processDir){
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingInstance);
         config.getAnalysisFileConfig().setTargetAPKFile(processDir);
@@ -80,12 +89,6 @@ public class RunAnalysis {
         );
 
         app.constructCallgraph();
-
-        CallGraph cg_ = Scene.v().getCallGraph();
-
-        Collection<Pack> allPacks = PackManager.v().allPacks();
-
-        generateGraph();
     }
 
     private static HashMap<String, Object> getRequestedPermissions(String apkPath){
