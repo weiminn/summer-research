@@ -1,11 +1,10 @@
 package Analysis.Transformers;
 
 import Analysis.GlobalRef;
-import Analysis.Transformers.CallGraph.Permissions;
+import Analysis.NodeInfo;
 import soot.*;
 import soot.jimple.Stmt;
 
-import java.util.ArrayList;
 import java.util.Map;
 
 public class GraphNodeReaderTransformer extends BodyTransformer {
@@ -13,10 +12,8 @@ public class GraphNodeReaderTransformer extends BodyTransformer {
     @Override
     protected void internalTransform(Body body, String s, Map<String, String> map) {
 
-        GlobalRef.currentNodes.append(body.getMethod().getSignature() + "\n");
-
-        int pLevel = 0;
-        ArrayList<String> permissions = new ArrayList<>();
+        String sig = body.getMethod().getSignature();
+        GlobalRef.currentNodes.putIfAbsent(sig, new NodeInfo());
 
         for(Unit u: body.getUnits()){
             Stmt stmt = (Stmt) u;
@@ -35,18 +32,8 @@ public class GraphNodeReaderTransformer extends BodyTransformer {
                     }
                 }
 
-                permissions.add(pName);
-                int _pLevel = Permissions.checkPermissionLevel(pName);
-                if(_pLevel > pLevel){
-                    pLevel = _pLevel;
-                }
+                GlobalRef.currentNodes.get(sig).addPermission(pName);
             }
         }
-
-        for (int i = 0; i < permissions.size(); i++){
-            GlobalRef.currentNodes.append(permissions.get(i) + ": level " + Permissions.checkPermissionLevel(permissions.get(i)) + "\n");
-        }
-
-        GlobalRef.currentNodes.append("Overall Permission level " + pLevel + "\n" + "===========================================\n");
     }
 }

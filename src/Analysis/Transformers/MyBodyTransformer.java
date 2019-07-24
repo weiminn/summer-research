@@ -1,17 +1,13 @@
 package Analysis.Transformers;
 
-import Analysis.Transformers.CallGraph.Permissions;
+import Analysis.Permissions;
 import soot.*;
-import soot.jimple.AssignStmt;
-import soot.jimple.InvokeStmt;
 import soot.jimple.Jimple;
 import soot.jimple.Stmt;
 import soot.toolkits.graph.ExceptionalUnitGraph;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
 

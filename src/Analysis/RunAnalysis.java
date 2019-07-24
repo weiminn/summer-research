@@ -135,10 +135,28 @@ public class RunAnalysis {
             try {
 
                 FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
-                writer.write(GlobalRef.currentNodes.toString());
-                writer.flush();
+
+                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
+                while(iter.hasNext()){
+
+                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
+                    writer.write(entry.getKey() + "\n");
+
+                    NodeInfo info = (NodeInfo) entry.getValue();
+
+                    Iterator iter2 = info.getPermissions().entrySet().iterator();
+                    while(iter2.hasNext()){
+
+                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
+                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
+                    }
+
+                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
+                    writer.flush();
+                }
+
                 writer.close();
-                GlobalRef.currentNodes.setLength(0);
+                GlobalRef.currentNodes.clear();
 
             } catch (Exception e){System.out.println(e);}
 
@@ -222,19 +240,18 @@ public class RunAnalysis {
 
                 MethodOrMethodContext src = next.getSrc();
                 MethodOrMethodContext tgt = next.getTgt();
-                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
+//                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
                 DotGraphNode srcNode = canvas.drawNode(src.toString());
                 DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
                 DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
             }
 
-            writer.flush();
-            writer.close();
+//            writer.flush();
+//            writer.close();
 
             System.out.println("Generated Dot Graph size: " + cg.size());
 
-            Boolean isDir = new File(GlobalRef.outputDir).isDirectory();
             String fileName = GlobalRef.outputDir + GlobalRef.currentApk + DotGraph.DOT_EXTENSION;
             canvas.plot(fileName);
 

@@ -1,4 +1,4 @@
-package Analysis.Transformers.CallGraph;
+package Analysis;
 
 import java.util.HashMap;
 
