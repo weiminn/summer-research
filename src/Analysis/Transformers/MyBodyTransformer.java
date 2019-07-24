@@ -67,7 +67,7 @@ public class MyBodyTransformer extends BodyTransformer {
 
 //            if(mName.equals("ContentResolver"))
 
-            String pLevel = "none";
+            int pLevel = 0;
             Boolean contentProvider = false;
 
             for(Unit u: body.getUnits()){
@@ -89,11 +89,10 @@ public class MyBodyTransformer extends BodyTransformer {
                         }
                     }
 
-                    String _pLevel = Permissions.checkPermissionLevel(pName);
-                    if(Permissions.PermissionLevels.get(_pLevel) > Permissions.PermissionLevels.get(pLevel)){
+                    int _pLevel = Permissions.checkPermissionLevel(pName);
+                    if(_pLevel > pLevel){
                         pLevel = _pLevel;
                     }
-
                     System.out.println(pName + " : " + pLevel);
                 }
 
@@ -132,8 +131,6 @@ public class MyBodyTransformer extends BodyTransformer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        body.validate();
 
     }
 

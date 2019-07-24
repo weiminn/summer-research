@@ -11,7 +11,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="flowdroid-271" level="project" />
     <orderEntry type="library" name="tamiflex-203" level="project" />
-    <orderEntry type="library" name="soot_latest" level="project" />
     <orderEntry type="library" name="herosclasses-trunk" level="project" />
+    <orderEntry type="library" name="soot_latest" level="project" />
   </component>
 </module>

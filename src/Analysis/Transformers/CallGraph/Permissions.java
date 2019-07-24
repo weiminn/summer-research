@@ -13,6 +13,23 @@ public class Permissions {
         }
     };
 
+    public static int checkPermissionLevel(String pName){
+
+        for (String normal:Permissions.normal) {
+            if(pName.equals(normal)) return 1;
+        }
+
+        for (String dangerous:Permissions.dangerous) {
+            if(pName.equals(dangerous)) return 2;
+        }
+
+        for (String signature:Permissions.signature) {
+            if(pName.equals(signature)) return 3;
+        }
+
+        return 0;
+    }
+
     private static String[] normal = {
             "ACCESS_LOCATION_EXTRA_COMMANDS",
             "ACCESS_NETWORK_STATE",
@@ -112,21 +129,4 @@ public class Permissions {
             "READ_EXTERNAL_STORAGE",
             "WRITE_EXTERNAL_STORAGE"
     };
-
-    public static String checkPermissionLevel(String pName){
-
-        for (String normal:Permissions.normal) {
-            if(pName.equals(normal)) return "normal";
-        }
-
-        for (String dangerous:Permissions.dangerous) {
-            if(pName.equals(dangerous)) return "dangerous";
-        }
-
-        for (String signature:Permissions.signature) {
-            if(pName.equals(signature)) return "signature";
-        }
-
-        return "none";
-    }
 }

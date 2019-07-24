@@ -1,0 +1,9 @@
+=====================================
+Permissions Requested
+-------------------------------------
+android.permission.INTERNET
+android.permission.ACCESS_NETWORK_STATE
+
+=====================================
+Content Providers Registered
+-------------------------------------

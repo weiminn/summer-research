@@ -1,29 +1,20 @@
 package Analysis;
 
-import Analysis.Transformers.CallGraph.MyCHATransformer;
-import Analysis.Transformers.CallGraph.MySPARKTransformer;
-import Analysis.Transformers.MyBodyTransformer;
-import de.bodden.tamiflex.playout.ClassDumper;
-import fj.Hash;
+import Analysis.Transformers.GraphNodeReaderTransformer;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.android.axml.AXmlAttribute;
 import soot.jimple.infoflow.android.axml.AXmlNode;
-import soot.jimple.infoflow.android.manifest.IManifestHandler;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
-import soot.jimple.infoflow.config.IInfoflowConfig;
-import soot.jimple.spark.SparkTransformer;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
-import soot.jimple.toolkits.ide.icfg.JimpleBasedInterproceduralCFG;
 import soot.options.Options;
 import soot.util.dot.DotGraph;
 import soot.util.dot.DotGraphEdge;
 import soot.util.dot.DotGraphNode;
 
-import javax.swing.text.html.Option;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
@@ -31,42 +22,68 @@ import java.util.*;
 public class RunAnalysis {
     public static void main(String[] args){
 
-        initializeSoot(
-                Options.src_prec_apk,
-                true,
-                "sample/apk/boosted/" +
-                        "textra_boosted" +
-                        ".apk",
-                Options.output_format_dex,
-                "dex",
-                true);
+//        analyzeAPKDirectory("sample/apk/dataset/");
 
-        initializeFlowdroid(
-                "sample/apk/boosted/" +
-                "textra_boosted" +
-                ".apk");
-
-        generateGraph();
+        analyzeAPK(
+//                "com.ncbhk.mortgage.android.hk.apk"
+                "air.com.jeuxdefille.ChickenCookinggame.apk"
+        );
 
     }
 
-    private static void initializeSoot(int srcPrec, boolean phantomRefs, String processDir, int outputFormat, String outputDir, boolean wholeProgram){
+    private static void analyzeAPK(String apk){
 
-        G.v().reset();
+        GlobalRef.currentApk = apk;
 
-        String ts = new Date().toString();
+        initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
+                "analysisOutput/" + GlobalRef.ts,
+                true);
 
-        outputManifest(processDir, outputDir, ts);
+        PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
 
-        soot.G.reset();
+        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
 
-        Options.v().set_process_dir(Collections.singletonList(processDir));
+        initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
+
+    }
+
+    private static void analyzeAPKDirectory(String dir){
+
+        GlobalRef.inputDir = dir;
+
+        File folder = new File(GlobalRef.inputDir);
+        File[] fileList = folder.listFiles();
+
+        for(int i = 0; i < fileList.length; i++){
+            if(fileList[i].getName().endsWith(".apk")){
+                GlobalRef.apks.add(fileList[i].getName());
+            }
+        }
+
+        Iterator<String> iter = GlobalRef.apks.iterator();
+        while(iter.hasNext()){
+            GlobalRef.currentApk = iter.next();
+            analyzeAPK(GlobalRef.currentApk);
+        }
+    }
+
+    private static void initializeSoot(int srcPrec, boolean phantomRefs, int outputFormat, String outputDir, boolean wholeProgram){
+
+        GlobalRef.outputDir = outputDir;
+
+        if (!new File(GlobalRef.outputDir).isDirectory()) { new File(GlobalRef.outputDir).mkdir(); }
+
+        G.reset();
+
+        String apk = GlobalRef.inputDir + GlobalRef.currentApk;
+        Options.v().set_process_dir(Collections.singletonList(apk));
         Options.v().set_src_prec(srcPrec);
         Options.v().set_output_format(outputFormat);
-        Options.v().set_output_dir("./analysisOutput/" + outputDir + "/");
+        Options.v().set_output_dir(GlobalRef.outputDir);
 
         Options.v().set_process_multiple_dex(true);
         Options.v().set_prepend_classpath(true);
+        Options.v().set_ignore_resolution_errors(true);
         Options.v().set_validate(true);
         Options.v().set_android_jars("/home/wei/Android/Sdk/platforms");
         Options.v().set_allow_phantom_refs(phantomRefs);
@@ -84,24 +101,48 @@ public class RunAnalysis {
         config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.SPARK);
         config.setEnableReflection(true);
 
-        SetupApplication app = new SetupApplication(
-                config
-        );
+        SetupApplication app = new SetupApplication(config);
 
-        app.constructCallgraph();
+        boolean sparkException = false;
+
+        try {
+            app.constructCallgraph();
+        } catch (Exception e){
+            System.out.println(e);
+            sparkException = true;
+        }
+
+        if(sparkException == false){
+
+            try {
+
+                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
+                writer.write(GlobalRef.currentNodes.toString());
+                writer.flush();
+                writer.close();
+                GlobalRef.currentNodes.setLength(0);
+
+            } catch (Exception e){System.out.println(e);}
+
+            outputManifest();
+
+            generateGraph();
+        }
     }
 
-    private static HashMap<String, Object> getRequestedPermissions(String apkPath){
+    private static HashMap<String, Object> readManifest(){
 
         HashMap<String, Object> toReturn = new HashMap<>();
         Set<String> permissions = null;
         List<AXmlNode> providers = null;
 
         try {
-            ProcessManifest manifest = new ProcessManifest(apkPath);
+
+            ProcessManifest manifest = new ProcessManifest(GlobalRef.inputDir + GlobalRef.currentApk);
             permissions = manifest.getPermissions();
             providers = manifest.getProviders();
             List<AXmlNode> activities = manifest.getActivities();
+
         } catch (Exception e){
             System.err.println(e);
         }
@@ -112,22 +153,13 @@ public class RunAnalysis {
         return toReturn;
     }
 
-    private static void outputManifest(String processDir, String outputDir, String ts){
-        HashMap manifestInfo = getRequestedPermissions(processDir);
+    private static void outputManifest(){
+
+        HashMap manifestInfo = readManifest();
 
         try{
 
-            File logsDir = new File("./analysisOutput/logs");
-            File outDir = new File("./analysisOutput/" + outputDir);
-
-            if(!logsDir.exists()){
-                logsDir.mkdir();
-            }
-            if(!outDir.exists()){
-                outDir.mkdir();
-            }
-
-            FileWriter mWriter = new FileWriter("./analysisOutput/logs/" + ts + "-ManifestAnalysis.txt", true);
+            FileWriter mWriter = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - ManifestAnalysis.txt", true);
 
             Set<String> pSet = (Set<String>) manifestInfo.get("permissions");
             Iterator<String> pSetItr = pSet.iterator();
@@ -149,44 +181,45 @@ public class RunAnalysis {
                 String cpName = attributes.get("authorities").getValue().toString();
                 mWriter.write(cpName + "\n");
             }
+
             mWriter.close();
 
-        } catch (Exception e){
-            System.err.println(e);
-        }
+        } catch (Exception e){ System.err.println(e); }
     }
 
     private static void generateGraph(){
+
         CallGraph cg = Scene.v().getCallGraph();
 
         DotGraph canvas = new DotGraph("call-graph");
         Iterator<Edge> edges = cg.iterator();
 
-//        System.out.println("Graph Edges:");
-        int i = 0;
-        while (edges.hasNext()) {
-            Edge next = edges.next();
-            MethodOrMethodContext src = next.getSrc();
-            MethodOrMethodContext tgt = next.getTgt();
+        try {
 
-            DotGraphNode srcNode = canvas.drawNode(src.toString());
-//            srcNode.setShape("rectangle");
-//            srcNode.setAttribute("color", "red");
+            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
 
-            DotGraphNode tgtNode = canvas.drawNode(src.toString());
-//            tgtNode.setShape("oval");
-//            tgtNode.setAttribute("color", "blue");
+            while (edges.hasNext()) {
 
-            DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
-//            edge.setLabel(next.srcUnit().toString());
-//            G.v().out.println(i++);
-//            G.v().out.println(src + " to " + tgt + "\n");
-        }
+                Edge next = edges.next();
 
-        G.v().out.println("Generated Dot Graph size: " + cg.size());
+                MethodOrMethodContext src = next.getSrc();
+                MethodOrMethodContext tgt = next.getTgt();
+                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
-        String fileName = "./analysisOutput/graphs/spark: " + new Date().toString() + DotGraph.DOT_EXTENSION;
-        canvas.plot(fileName);
+                DotGraphNode srcNode = canvas.drawNode(src.toString());
+                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
+                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
+            }
+
+            writer.flush();
+            writer.close();
+
+            System.out.println("Generated Dot Graph size: " + cg.size());
+
+            Boolean isDir = new File(GlobalRef.outputDir).isDirectory();
+            String fileName = GlobalRef.outputDir + GlobalRef.currentApk + DotGraph.DOT_EXTENSION;
+            canvas.plot(fileName);
+
+        } catch (Exception e){ System.out.println(e); }
     }
-
 }
