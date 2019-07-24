@@ -27,6 +27,7 @@ public class RunAnalysis {
         analyzeAPK(
 //                "com.ncbhk.mortgage.android.hk.apk"
                 "air.com.jeuxdefille.ChickenCookinggame.apk"
+            , "sample/apk/dataset/"
         );
 
     }
@@ -36,7 +37,24 @@ public class RunAnalysis {
         GlobalRef.currentApk = apk;
 
         initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
-                "analysisOutput/" + GlobalRef.ts,
+                "analysisOutput/" + GlobalRef.ts + "/",
+                true);
+
+        PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
+
+        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
+
+        initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
+
+    }
+
+    private static void analyzeAPK(String apk, String dir){
+
+        GlobalRef.inputDir = dir;
+        GlobalRef.currentApk = apk;
+
+        initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
+                "analysisOutput/" + GlobalRef.ts + "/",
                 true);
 
         PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
