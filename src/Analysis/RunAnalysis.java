@@ -22,14 +22,13 @@ import java.util.*;
 public class RunAnalysis {
     public static void main(String[] args){
 
-//        analyzeAPKDirectory("sample/apk/dataset/");
+        analyzeAPKDirectory("sample/apk/dataset/");
 
-        analyzeAPK(
+//        analyzeAPK(
 //                "com.ncbhk.mortgage.android.hk.apk"
-                "air.com.jeuxdefille.ChickenCookinggame.apk"
-            , "sample/apk/dataset/"
-        );
-
+////                "air.com.jeuxdefille.ChickenCookinggame.apk"
+//            , "sample/apk/dataset/"
+//        );
     }
 
     private static void analyzeAPK(String apk){
@@ -240,15 +239,15 @@ public class RunAnalysis {
 
                 MethodOrMethodContext src = next.getSrc();
                 MethodOrMethodContext tgt = next.getTgt();
-//                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
+                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
                 DotGraphNode srcNode = canvas.drawNode(src.toString());
                 DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
                 DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
             }
 
-//            writer.flush();
-//            writer.close();
+            writer.flush();
+            writer.close();
 
             System.out.println("Generated Dot Graph size: " + cg.size());
 
