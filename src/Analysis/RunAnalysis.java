@@ -17,12 +17,17 @@ import soot.util.dot.DotGraphNode;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class RunAnalysis {
     public static void main(String[] args){
 
-        analyzeAPKDirectory("sample/apk/dataset/");
+        AndroidAPI apis = new AndroidAPI();
+
+        analyzeAPKDirectory("sample/apk/test_dataset/");
 
 //        analyzeAPK(
 //                "com.ncbhk.mortgage.android.hk.apk"
@@ -82,6 +87,8 @@ public class RunAnalysis {
             GlobalRef.currentApk = iter.next();
             analyzeAPK(GlobalRef.currentApk);
         }
+
+        generateCSV();
     }
 
     private static void initializeSoot(int srcPrec, boolean phantomRefs, int outputFormat, String outputDir, boolean wholeProgram){
@@ -231,6 +238,9 @@ public class RunAnalysis {
 
         try {
 
+            InvocationMatrix matrix = new InvocationMatrix();
+            int counter = 0;
+
             FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
 
             while (edges.hasNext()) {
@@ -241,10 +251,20 @@ public class RunAnalysis {
                 MethodOrMethodContext tgt = next.getTgt();
                 writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
+                String fullClassMethod = tgt.method().getDeclaringClass().getName() + " " + tgt.method().method().getName();
+                if(matrix.appMatrix.containsKey(fullClassMethod)){
+                    if(matrix.appMatrix.get(fullClassMethod) == 0){
+                        matrix.appMatrix.put(fullClassMethod, 1);
+                        counter++;
+                    }
+                }
+
                 DotGraphNode srcNode = canvas.drawNode(src.toString());
                 DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
                 DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
             }
+
+            GlobalRef.invocationMatrices.put(GlobalRef.currentApk, matrix);
 
             writer.flush();
             writer.close();
@@ -255,5 +275,57 @@ public class RunAnalysis {
             canvas.plot(fileName);
 
         } catch (Exception e){ System.out.println(e); }
+    }
+
+    private static void generateCSV(){
+
+        ArrayList<ArrayList<String>> toPrint = new ArrayList<>();
+
+        InvocationMatrix matrix = new InvocationMatrix();
+        ArrayList<String> topRow = new ArrayList<>();
+        topRow.add("apk");
+        Iterator topIter = matrix.appMatrix.entrySet().iterator();
+        while(topIter.hasNext()){
+            Map.Entry entry = (Map.Entry) topIter.next();
+            topRow.add((String) entry.getKey());
+        }
+
+        toPrint.add(topRow);
+
+        for(Iterator i = GlobalRef.invocationMatrices.entrySet().iterator(); i.hasNext();){
+
+            ArrayList<String> newRow = new ArrayList<>();
+
+            Map.Entry apkInvokMap = (Map.Entry) i.next();
+            String apkName = (String) apkInvokMap.getKey();
+            newRow.add(apkName);
+            for(Iterator j = topRow.iterator(); j.hasNext();){
+                String colName = (String) j.next();
+                if(!colName.equals("apk")){
+                    newRow.add(
+                        GlobalRef.invocationMatrices.get(apkName).appMatrix.get(colName).toString()
+                    );
+                }
+            }
+            toPrint.add(newRow);
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for(Iterator i = toPrint.iterator(); i.hasNext();){
+            for(Iterator j = ((ArrayList<String>)i.next()).iterator(); j.hasNext();){
+                sb.append(j.next());
+                if(j.hasNext()){
+                    sb.append(',');
+                }
+            }
+            sb.append("\n");
+        }
+
+        try {
+            Files.write(Paths.get(GlobalRef.outputDir + "APIs.csv"), sb.toString().getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
