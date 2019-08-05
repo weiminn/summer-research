@@ -5,14 +5,13 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/analysisOutput" />
+      <excludeFolder url="file://$MODULE_DIR$/sample/apk" />
       <excludeFolder url="file://$MODULE_DIR$/sootOutputCustom" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="flowdroid-271" level="project" />
-    <orderEntry type="library" name="tamiflex-203" level="project" />
-    <orderEntry type="library" name="herosclasses-trunk" level="project" />
-    <orderEntry type="library" name="soot_latest" level="project" />
     <orderEntry type="library" name="gson-2.8.5" level="project" />
+    <orderEntry type="library" name="soot-Jul30" level="project" />
   </component>
 </module>

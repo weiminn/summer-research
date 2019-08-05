@@ -27,7 +27,7 @@ public class RunAnalysis {
 
         AndroidAPI apis = new AndroidAPI();
 
-        analyzeAPKDirectory("sample/apk/test_dataset/");
+        analyzeAPKDirectory("sample/apk/dataset/");
 
 //        analyzeAPK(
 //                "com.ncbhk.mortgage.android.hk.apk"
@@ -41,12 +41,12 @@ public class RunAnalysis {
         GlobalRef.currentApk = apk;
 
         initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
-                "analysisOutput/" + GlobalRef.ts + "/",
-                true);
+            "analysisOutput/" + GlobalRef.ts + "/",
+            true);
 
         PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
 
-        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
+//        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
 
         initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
 
@@ -57,16 +57,7 @@ public class RunAnalysis {
         GlobalRef.inputDir = dir;
         GlobalRef.currentApk = apk;
 
-        initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
-                "analysisOutput/" + GlobalRef.ts + "/",
-                true);
-
-        PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
-
-        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
-
-        initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
-
+        analyzeAPK(apk);
     }
 
     private static void analyzeAPKDirectory(String dir){
@@ -109,11 +100,12 @@ public class RunAnalysis {
         Options.v().set_prepend_classpath(true);
         Options.v().set_ignore_resolution_errors(true);
         Options.v().set_validate(true);
-        Options.v().set_android_jars("/home/wei/Android/Sdk/platforms");
+        Options.v().set_android_jars(GlobalRef.androidPlatforms);
         Options.v().set_allow_phantom_refs(phantomRefs);
         Options.v().set_no_bodies_for_excluded(false);
         Options.v().set_whole_program(true);
         Options.v().set_app(true);
+        Options.v().set_keep_line_number(true);
 
         Scene.v().loadNecessaryClasses();
     }
@@ -132,7 +124,7 @@ public class RunAnalysis {
         try {
             app.constructCallgraph();
         } catch (Exception e){
-            System.out.println(e);
+            System.out.println("Call graph failed for " + GlobalRef.currentApk + " : " + e);
             sparkException = true;
         }
 
@@ -140,35 +132,36 @@ public class RunAnalysis {
 
             try {
 
-                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
+//                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
+//
+//                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
+//                while(iter.hasNext()){
+//
+//                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
+//                    writer.write(entry.getKey() + "\n");
+//
+//                    NodeInfo info = (NodeInfo) entry.getValue();
+//
+//                    Iterator iter2 = info.getPermissions().entrySet().iterator();
+//                    while(iter2.hasNext()){
+//
+//                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
+//                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
+//                    }
+//
+//                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
+//                    writer.flush();
+//                }
+//
+//                writer.close();
 
-                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
-                while(iter.hasNext()){
-
-                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
-                    writer.write(entry.getKey() + "\n");
-
-                    NodeInfo info = (NodeInfo) entry.getValue();
-
-                    Iterator iter2 = info.getPermissions().entrySet().iterator();
-                    while(iter2.hasNext()){
-
-                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
-                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
-                    }
-
-                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
-                    writer.flush();
-                }
-
-                writer.close();
                 GlobalRef.currentNodes.clear();
 
+//                outputManifest();
+
+                generateGraph();
+
             } catch (Exception e){System.out.println(e);}
-
-            outputManifest();
-
-            generateGraph();
         }
     }
 
@@ -239,9 +232,8 @@ public class RunAnalysis {
         try {
 
             InvocationMatrix matrix = new InvocationMatrix();
-            int counter = 0;
 
-            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
+//            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
 
             while (edges.hasNext()) {
 
@@ -249,30 +241,29 @@ public class RunAnalysis {
 
                 MethodOrMethodContext src = next.getSrc();
                 MethodOrMethodContext tgt = next.getTgt();
-                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
+//                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
                 String fullClassMethod = tgt.method().getDeclaringClass().getName() + " " + tgt.method().method().getName();
                 if(matrix.appMatrix.containsKey(fullClassMethod)){
                     if(matrix.appMatrix.get(fullClassMethod) == 0){
                         matrix.appMatrix.put(fullClassMethod, 1);
-                        counter++;
                     }
                 }
 
-                DotGraphNode srcNode = canvas.drawNode(src.toString());
-                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
-                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
+//                DotGraphNode srcNode = canvas.drawNode(src.toString());
+//                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
+//                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
             }
 
             GlobalRef.invocationMatrices.put(GlobalRef.currentApk, matrix);
 
-            writer.flush();
-            writer.close();
+//            writer.flush();
+//            writer.close();
 
             System.out.println("Generated Dot Graph size: " + cg.size());
 
             String fileName = GlobalRef.outputDir + GlobalRef.currentApk + DotGraph.DOT_EXTENSION;
-            canvas.plot(fileName);
+//            canvas.plot(fileName);
 
         } catch (Exception e){ System.out.println(e); }
     }
