@@ -11,7 +11,7 @@ public class GlobalRef {
 
     public static String ts = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
 
-    public static String androidPlatforms = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
+    public static String androidPlatforms;
     public static String inputDir;
     public static ArrayList<String> apks = new ArrayList<>( );
     public static String currentApk;
@@ -19,4 +19,6 @@ public class GlobalRef {
     public static HashMap<String, NodeInfo> currentNodes = new HashMap();
 
     public static String outputDir;
+
+    public static int sparkErrors = 0;
 }

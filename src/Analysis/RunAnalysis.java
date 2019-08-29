@@ -1,6 +1,7 @@
 package Analysis;
 
 import Analysis.Transformers.GraphNodeReaderTransformer;
+import Analysis.Transformers.ICFGTransformer;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
@@ -24,45 +25,59 @@ import java.util.*;
 
 public class RunAnalysis {
     public static void main(String[] args){
+//        String[] _args = new String[3];
+//        _args[0] = "-f"; _args[1] = "sample/apk/apk_selected/a.dr.br.ambedkar.hindiandenglish.read.apk"; _args[2] = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
+//        _args[0] = "-d"; _args[1] = "sample/apk/dataset"; _args[2] = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
+//        GlobalRef.androidPlatforms = _args[2];
+//        String ford = _args[0];
+//        String fordV = _args[1];
 
         AndroidAPI apis = new AndroidAPI();
+        GlobalRef.androidPlatforms = args[2];
 
-        analyzeAPKDirectory("sample/apk/dataset/");
+        String ford = args[0];
+        String fordV = args[1];
 
-//        analyzeAPK(
-//                "com.ncbhk.mortgage.android.hk.apk"
-////                "air.com.jeuxdefille.ChickenCookinggame.apk"
-//            , "sample/apk/dataset/"
-//        );
+        if(ford.equals("-f")){
+            int lastSlash = fordV.lastIndexOf('/');
+            String apkName = fordV.substring(lastSlash + 1);
+            String dirName = fordV.substring(0, lastSlash + 1);
+            analyzeAPK(apkName, dirName);
+        } else if (ford.equals("-d")){
+            analyzeAPKDirectory(fordV);
+            generateCSV();
+        }
+
+        generateCSV();
     }
 
-    private static void analyzeAPK(String apk){
+    private static void analyzeAPK(String apkName){
 
-        GlobalRef.currentApk = apk;
+        GlobalRef.currentApk = apkName;
 
         initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
             "analysisOutput/" + GlobalRef.ts + "/",
             true);
 
-        PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
-
-//        try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println(e); }
-
         initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
 
     }
 
-    private static void analyzeAPK(String apk, String dir){
+    private static void analyzeAPK(String apkName, String dir){
 
         GlobalRef.inputDir = dir;
-        GlobalRef.currentApk = apk;
+        analyzeAPK(apkName);
 
-        analyzeAPK(apk);
     }
 
     private static void analyzeAPKDirectory(String dir){
 
-        GlobalRef.inputDir = dir;
+        if(dir.charAt(dir.length()-1) == '/'){
+            GlobalRef.inputDir = dir;
+        } else {
+            GlobalRef.inputDir = dir + '/';
+        }
+
 
         File folder = new File(GlobalRef.inputDir);
         File[] fileList = folder.listFiles();
@@ -78,8 +93,6 @@ public class RunAnalysis {
             GlobalRef.currentApk = iter.next();
             analyzeAPK(GlobalRef.currentApk);
         }
-
-        generateCSV();
     }
 
     private static void initializeSoot(int srcPrec, boolean phantomRefs, int outputFormat, String outputDir, boolean wholeProgram){
@@ -107,10 +120,16 @@ public class RunAnalysis {
         Options.v().set_app(true);
         Options.v().set_keep_line_number(true);
 
+        Options.v().set_validate(false);
+
         Scene.v().loadNecessaryClasses();
+
+        PackManager.v().getPack("wjtp").add(new Transform("wjtp.icfg", new ICFGTransformer()));
+
     }
 
     private static void initializeFlowdroid(String processDir){
+
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingInstance);
         config.getAnalysisFileConfig().setTargetAPKFile(processDir);
@@ -124,42 +143,47 @@ public class RunAnalysis {
         try {
             app.constructCallgraph();
         } catch (Exception e){
-            System.out.println("Call graph failed for " + GlobalRef.currentApk + " : " + e);
+            System.out.println("Call graph SPARK transformation failed for " + GlobalRef.currentApk + " : " + e);
+            GlobalRef.sparkErrors++;
             sparkException = true;
         }
 
         if(sparkException == false){
 
+            outputManifest();
+
+            generateGraph();
+
+            PhaseOptions.v().setPhaseOption("wjtp.icfg", "enabled:false");
+            PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
+            try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println("Run Pack Exceptions: " + e); }
+
             try {
 
-//                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
-//
-//                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
-//                while(iter.hasNext()){
-//
-//                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
-//                    writer.write(entry.getKey() + "\n");
-//
-//                    NodeInfo info = (NodeInfo) entry.getValue();
-//
-//                    Iterator iter2 = info.getPermissions().entrySet().iterator();
-//                    while(iter2.hasNext()){
-//
-//                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
-//                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
-//                    }
-//
-//                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
-//                    writer.flush();
-//                }
-//
-//                writer.close();
+                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
+
+                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
+                while(iter.hasNext()){
+
+                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
+                    writer.write(entry.getKey() + "\n");
+
+                    NodeInfo info = (NodeInfo) entry.getValue();
+
+                    Iterator iter2 = info.getPermissions().entrySet().iterator();
+                    while(iter2.hasNext()){
+
+                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
+                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
+                    }
+
+                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
+                    writer.flush();
+                }
+
+                writer.close();
 
                 GlobalRef.currentNodes.clear();
-
-//                outputManifest();
-
-                generateGraph();
 
             } catch (Exception e){System.out.println(e);}
         }
@@ -233,7 +257,7 @@ public class RunAnalysis {
 
             InvocationMatrix matrix = new InvocationMatrix();
 
-//            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
+            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
 
             while (edges.hasNext()) {
 
@@ -241,7 +265,7 @@ public class RunAnalysis {
 
                 MethodOrMethodContext src = next.getSrc();
                 MethodOrMethodContext tgt = next.getTgt();
-//                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
+                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
 
                 String fullClassMethod = tgt.method().getDeclaringClass().getName() + " " + tgt.method().method().getName();
                 if(matrix.appMatrix.containsKey(fullClassMethod)){
@@ -250,15 +274,15 @@ public class RunAnalysis {
                     }
                 }
 
-//                DotGraphNode srcNode = canvas.drawNode(src.toString());
-//                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
-//                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
+                DotGraphNode srcNode = canvas.drawNode(src.toString());
+                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
+                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
             }
 
             GlobalRef.invocationMatrices.put(GlobalRef.currentApk, matrix);
 
-//            writer.flush();
-//            writer.close();
+            writer.flush();
+            writer.close();
 
             System.out.println("Generated Dot Graph size: " + cg.size());
 
@@ -270,53 +294,55 @@ public class RunAnalysis {
 
     private static void generateCSV(){
 
-        ArrayList<ArrayList<String>> toPrint = new ArrayList<>();
+        if(GlobalRef.invocationMatrices.size() > 0){
+            ArrayList<ArrayList<String>> toPrint = new ArrayList<>();
 
-        InvocationMatrix matrix = new InvocationMatrix();
-        ArrayList<String> topRow = new ArrayList<>();
-        topRow.add("apk");
-        Iterator topIter = matrix.appMatrix.entrySet().iterator();
-        while(topIter.hasNext()){
-            Map.Entry entry = (Map.Entry) topIter.next();
-            topRow.add((String) entry.getKey());
-        }
-
-        toPrint.add(topRow);
-
-        for(Iterator i = GlobalRef.invocationMatrices.entrySet().iterator(); i.hasNext();){
-
-            ArrayList<String> newRow = new ArrayList<>();
-
-            Map.Entry apkInvokMap = (Map.Entry) i.next();
-            String apkName = (String) apkInvokMap.getKey();
-            newRow.add(apkName);
-            for(Iterator j = topRow.iterator(); j.hasNext();){
-                String colName = (String) j.next();
-                if(!colName.equals("apk")){
-                    newRow.add(
-                        GlobalRef.invocationMatrices.get(apkName).appMatrix.get(colName).toString()
-                    );
-                }
+            InvocationMatrix matrix = new InvocationMatrix();
+            ArrayList<String> topRow = new ArrayList<>();
+            topRow.add("apk");
+            Iterator topIter = matrix.appMatrix.entrySet().iterator();
+            while(topIter.hasNext()){
+                Map.Entry entry = (Map.Entry) topIter.next();
+                topRow.add((String) entry.getKey());
             }
-            toPrint.add(newRow);
-        }
 
-        StringBuilder sb = new StringBuilder();
+            toPrint.add(topRow);
 
-        for(Iterator i = toPrint.iterator(); i.hasNext();){
-            for(Iterator j = ((ArrayList<String>)i.next()).iterator(); j.hasNext();){
-                sb.append(j.next());
-                if(j.hasNext()){
-                    sb.append(',');
+            for(Iterator i = GlobalRef.invocationMatrices.entrySet().iterator(); i.hasNext();){
+
+                ArrayList<String> newRow = new ArrayList<>();
+
+                Map.Entry apkInvokMap = (Map.Entry) i.next();
+                String apkName = (String) apkInvokMap.getKey();
+                newRow.add(apkName);
+                for(Iterator j = topRow.iterator(); j.hasNext();){
+                    String colName = (String) j.next();
+                    if(!colName.equals("apk")){
+                        newRow.add(
+                                GlobalRef.invocationMatrices.get(apkName).appMatrix.get(colName).toString()
+                        );
+                    }
                 }
+                toPrint.add(newRow);
             }
-            sb.append("\n");
-        }
 
-        try {
-            Files.write(Paths.get(GlobalRef.outputDir + "APIs.csv"), sb.toString().getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
+            StringBuilder sb = new StringBuilder();
+
+            for(Iterator i = toPrint.iterator(); i.hasNext();){
+                for(Iterator j = ((ArrayList<String>)i.next()).iterator(); j.hasNext();){
+                    sb.append(j.next());
+                    if(j.hasNext()){
+                        sb.append(',');
+                    }
+                }
+                sb.append("\n");
+            }
+
+            try {
+                Files.write(Paths.get(GlobalRef.outputDir + "APIs.csv"), sb.toString().getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

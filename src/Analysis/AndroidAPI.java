@@ -1,16 +1,19 @@
 package Analysis;
 
 import com.google.gson.Gson;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import org.apache.commons.io.IOUtils;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.*;
 
 public class AndroidAPI {
 
     public AndroidAPI(){
         try {
-            String readFiles = new String(Files.readAllBytes(Paths.get("./src/Analysis/apis.json")));
+            InputStream stream = this.getClass().getResourceAsStream("apis.json");
+            String readFiles = IOUtils.toString(stream, Charset.defaultCharset());
+            stream.close();
+
             Gson gson = new Gson();
             API[] apis = gson.fromJson(readFiles, API[].class);
 
