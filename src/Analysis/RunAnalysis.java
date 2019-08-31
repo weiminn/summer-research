@@ -1,14 +1,10 @@
 package Analysis;
 
 import Analysis.Transformers.GraphNodeReaderTransformer;
-import Analysis.Transformers.ICFGTransformer;
 import soot.*;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
-import soot.jimple.infoflow.android.axml.AXmlAttribute;
-import soot.jimple.infoflow.android.axml.AXmlNode;
-import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.options.Options;
@@ -25,44 +21,65 @@ import java.util.*;
 
 public class RunAnalysis {
     public static void main(String[] args){
-//        String[] _args = new String[3];
+        String[] _args = new String[3];
+
+        //Load path to android platforms to GlobalRef's variable
+        GlobalRef.androidPlatforms = _args[2];
+
 //        _args[0] = "-f"; _args[1] = "sample/apk/apk_selected/a.dr.br.ambedkar.hindiandenglish.read.apk"; _args[2] = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
-//        _args[0] = "-d"; _args[1] = "sample/apk/dataset"; _args[2] = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
-//        GlobalRef.androidPlatforms = _args[2];
-//        String ford = _args[0];
-//        String fordV = _args[1];
+        _args[0] = "-d"; _args[1] = "sample/apk/dataset"; _args[2] = "C:\\Users\\mgwei\\AppData\\Local\\Android\\Sdk\\platforms";
 
+        String ford = _args[0]; // file or directory option
+        String fordV = _args[1]; // file or directory value
+
+        //Load names of methods from Android APIs from the JSON
         AndroidAPI apis = new AndroidAPI();
-        GlobalRef.androidPlatforms = args[2];
 
-        String ford = args[0];
-        String fordV = args[1];
 
+        //check if the option is file or directory
+        //individual file feature may not be working on Windows machine
         if(ford.equals("-f")){
             int lastSlash = fordV.lastIndexOf('/');
             String apkName = fordV.substring(lastSlash + 1);
             String dirName = fordV.substring(0, lastSlash + 1);
             analyzeAPK(apkName, dirName);
         } else if (ford.equals("-d")){
+            /*
+                if the option is directory
+                analyze the whole directory
+             */
             analyzeAPKDirectory(fordV);
-            generateCSV();
         }
 
-        generateCSV();
+        //output all the APK invocation matrixes in the .csv file
+        OutputGenerator.generateCSV();
     }
 
+    // function to analyze individual APK
     private static void analyzeAPK(String apkName){
 
+        //remember the current APK name globally
         GlobalRef.currentApk = apkName;
 
+        /*
+            Initialize soot environment
+            includes source file format, output destination, etc
+            also also loads classes from the APK into the scene
+         */
         initializeSoot( Options.src_prec_apk, true, Options.output_format_dex,
             "analysisOutput/" + GlobalRef.ts + "/",
             true);
 
+        /*
+            Initialize Flowdroid using current Soot instance
+            to get Call graph with DummyMainClass from entry points
+            and DummyMainMethods for all activities
+         */
         initializeFlowdroid( GlobalRef.inputDir + GlobalRef.currentApk );
 
     }
 
+    // function to analyze individual APK with specified directory
     private static void analyzeAPK(String apkName, String dir){
 
         GlobalRef.inputDir = dir;
@@ -70,8 +87,10 @@ public class RunAnalysis {
 
     }
 
+    // analyze the whole directory
     private static void analyzeAPKDirectory(String dir){
 
+        //check if the directory name is properly formatted
         if(dir.charAt(dir.length()-1) == '/'){
             GlobalRef.inputDir = dir;
         } else {
@@ -79,36 +98,43 @@ public class RunAnalysis {
         }
 
 
+        //get the names of all files in the directory
         File folder = new File(GlobalRef.inputDir);
         File[] fileList = folder.listFiles();
 
+        //keep the filenames ending with .apk
         for(int i = 0; i < fileList.length; i++){
             if(fileList[i].getName().endsWith(".apk")){
                 GlobalRef.apks.add(fileList[i].getName());
             }
         }
 
+        //analyze all the APKs in the list
         Iterator<String> iter = GlobalRef.apks.iterator();
         while(iter.hasNext()){
             GlobalRef.currentApk = iter.next();
-            analyzeAPK(GlobalRef.currentApk);
+            analyzeAPK(GlobalRef.currentApk); //function that analyzes the individual apk
         }
     }
 
+    // configure and initialize Soot environment
     private static void initializeSoot(int srcPrec, boolean phantomRefs, int outputFormat, String outputDir, boolean wholeProgram){
 
         GlobalRef.outputDir = outputDir;
 
+        //create directory if not exists
         if (!new File(GlobalRef.outputDir).isDirectory()) { new File(GlobalRef.outputDir).mkdir(); }
 
-        G.reset();
+        G.reset(); //reset
 
+        //input file/directory option
         String apk = GlobalRef.inputDir + GlobalRef.currentApk;
         Options.v().set_process_dir(Collections.singletonList(apk));
         Options.v().set_src_prec(srcPrec);
         Options.v().set_output_format(outputFormat);
         Options.v().set_output_dir(GlobalRef.outputDir);
 
+        //options for processing APK
         Options.v().set_process_multiple_dex(true);
         Options.v().set_prepend_classpath(true);
         Options.v().set_ignore_resolution_errors(true);
@@ -119,230 +145,67 @@ public class RunAnalysis {
         Options.v().set_whole_program(true);
         Options.v().set_app(true);
         Options.v().set_keep_line_number(true);
-
         Options.v().set_validate(false);
 
+        //load all the classes of the APK into the scene
         Scene.v().loadNecessaryClasses();
-
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.icfg", new ICFGTransformer()));
-
     }
 
+    // configure and initialize analysis for Android analysis
     private static void initializeFlowdroid(String processDir){
 
+        //create configuration object to be fed into Flowdroid's Application Setup
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
+
+        //configure Flowdroid to use the previously initialized and existing Soot instance
         config.setSootIntegrationMode(InfoflowAndroidConfiguration.SootIntegrationMode.UseExistingInstance);
+
+        //target the current APK file
         config.getAnalysisFileConfig().setTargetAPKFile(processDir);
+
+        //Pointer transformation for the Call graph using SPARK algorithm
         config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.SPARK);
+
+        //rudimentarily analyze reflection calls
         config.setEnableReflection(true);
 
+        //setup the Dataflow analysis object with the configurations
         SetupApplication app = new SetupApplication(config);
 
         boolean sparkException = false;
 
+        //try constructing call graph
         try {
             app.constructCallgraph();
         } catch (Exception e){
+
+            //stop everything and skip to next APK if any error with call graph construction
             System.out.println("Call graph SPARK transformation failed for " + GlobalRef.currentApk + " : " + e);
-            GlobalRef.sparkErrors++;
+            GlobalRef.sparkErrors++; //for tracking errant APKs for debuging purpose
             sparkException = true;
         }
 
+        //if the APK call graph construction and SPARK transformation went smoothly
         if(sparkException == false){
 
-            outputManifest();
+            //write out permission and content provider requests from the manifest
+            OutputGenerator.outputManifest();
 
-            generateGraph();
+            //output graph edges from the call graph
+            OutputGenerator.generateGraph();
 
-            PhaseOptions.v().setPhaseOption("wjtp.icfg", "enabled:false");
+//            PhaseOptions.v().setPhaseOption("wjtp.icfg", "enabled:false");
+
+            //add the custom transformer that reads all bodies (nodes of the graph) in all classes in the scene
             PackManager.v().getPack("jtp").add(new Transform("jtp.readbody", new GraphNodeReaderTransformer()));
+
+            //run all transformation packs by Soot
             try { PackManager.v().runPacks(); } catch (Exception e){ System.out.println("Run Pack Exceptions: " + e); }
 
-            try {
+            //output all nodes from the methods of all classes in the scene
+            OutputGenerator.generateNodes();
 
-                FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Nodes.txt", true);
-
-                Iterator iter = GlobalRef.currentNodes.entrySet().iterator();
-                while(iter.hasNext()){
-
-                    Map.Entry<String, NodeInfo> entry = (Map.Entry<String, NodeInfo>) iter.next();
-                    writer.write(entry.getKey() + "\n");
-
-                    NodeInfo info = (NodeInfo) entry.getValue();
-
-                    Iterator iter2 = info.getPermissions().entrySet().iterator();
-                    while(iter2.hasNext()){
-
-                        Map.Entry<String, Integer> per = (Map.Entry<String, Integer>) iter2.next();
-                        writer.write(per.getKey() + " - " + per.getValue() + "\n");
-                    }
-
-                    writer.write("Highest permission level - " + info.highestLevel+ "\n\n");
-                    writer.flush();
-                }
-
-                writer.close();
-
-                GlobalRef.currentNodes.clear();
-
-            } catch (Exception e){System.out.println(e);}
         }
     }
 
-    private static HashMap<String, Object> readManifest(){
-
-        HashMap<String, Object> toReturn = new HashMap<>();
-        Set<String> permissions = null;
-        List<AXmlNode> providers = null;
-
-        try {
-
-            ProcessManifest manifest = new ProcessManifest(GlobalRef.inputDir + GlobalRef.currentApk);
-            permissions = manifest.getPermissions();
-            providers = manifest.getProviders();
-            List<AXmlNode> activities = manifest.getActivities();
-
-        } catch (Exception e){
-            System.err.println(e);
-        }
-
-        toReturn.put("permissions", permissions);
-        toReturn.put("providers", providers);
-
-        return toReturn;
-    }
-
-    private static void outputManifest(){
-
-        HashMap manifestInfo = readManifest();
-
-        try{
-
-            FileWriter mWriter = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - ManifestAnalysis.txt", true);
-
-            Set<String> pSet = (Set<String>) manifestInfo.get("permissions");
-            Iterator<String> pSetItr = pSet.iterator();
-
-            List<AXmlNode> cpList = (List<AXmlNode>) manifestInfo.get("providers");
-            Iterator<AXmlNode> cpListItr = cpList.iterator();
-
-            mWriter.write("=====================================\nPermissions Requested\n-------------------------------------\n");
-
-            while(pSetItr.hasNext()){
-                mWriter.write(pSetItr.next() + "\n");
-            }
-
-            mWriter.write("\n=====================================\nContent Providers Registered\n-------------------------------------\n");
-
-            while(cpListItr.hasNext()){
-                Map<String, AXmlAttribute<?>> attributes = cpListItr.next().getAttributes();
-
-                String cpName = attributes.get("authorities").getValue().toString();
-                mWriter.write(cpName + "\n");
-            }
-
-            mWriter.close();
-
-        } catch (Exception e){ System.err.println(e); }
-    }
-
-    private static void generateGraph(){
-
-        CallGraph cg = Scene.v().getCallGraph();
-
-        DotGraph canvas = new DotGraph("call-graph");
-        Iterator<Edge> edges = cg.iterator();
-
-        try {
-
-            InvocationMatrix matrix = new InvocationMatrix();
-
-            FileWriter writer = new FileWriter(GlobalRef.outputDir + GlobalRef.currentApk + " - Edges.txt", true);
-
-            while (edges.hasNext()) {
-
-                Edge next = edges.next();
-
-                MethodOrMethodContext src = next.getSrc();
-                MethodOrMethodContext tgt = next.getTgt();
-                writer.write(src.toString() + " -> " + tgt.toString() + "\n");
-
-                String fullClassMethod = tgt.method().getDeclaringClass().getName() + " " + tgt.method().method().getName();
-                if(matrix.appMatrix.containsKey(fullClassMethod)){
-                    if(matrix.appMatrix.get(fullClassMethod) == 0){
-                        matrix.appMatrix.put(fullClassMethod, 1);
-                    }
-                }
-
-                DotGraphNode srcNode = canvas.drawNode(src.toString());
-                DotGraphNode tgtNode = canvas.drawNode(tgt.toString());
-                DotGraphEdge edge = canvas.drawEdge(src.toString(), tgt.toString());
-            }
-
-            GlobalRef.invocationMatrices.put(GlobalRef.currentApk, matrix);
-
-            writer.flush();
-            writer.close();
-
-            System.out.println("Generated Dot Graph size: " + cg.size());
-
-            String fileName = GlobalRef.outputDir + GlobalRef.currentApk + DotGraph.DOT_EXTENSION;
-//            canvas.plot(fileName);
-
-        } catch (Exception e){ System.out.println(e); }
-    }
-
-    private static void generateCSV(){
-
-        if(GlobalRef.invocationMatrices.size() > 0){
-            ArrayList<ArrayList<String>> toPrint = new ArrayList<>();
-
-            InvocationMatrix matrix = new InvocationMatrix();
-            ArrayList<String> topRow = new ArrayList<>();
-            topRow.add("apk");
-            Iterator topIter = matrix.appMatrix.entrySet().iterator();
-            while(topIter.hasNext()){
-                Map.Entry entry = (Map.Entry) topIter.next();
-                topRow.add((String) entry.getKey());
-            }
-
-            toPrint.add(topRow);
-
-            for(Iterator i = GlobalRef.invocationMatrices.entrySet().iterator(); i.hasNext();){
-
-                ArrayList<String> newRow = new ArrayList<>();
-
-                Map.Entry apkInvokMap = (Map.Entry) i.next();
-                String apkName = (String) apkInvokMap.getKey();
-                newRow.add(apkName);
-                for(Iterator j = topRow.iterator(); j.hasNext();){
-                    String colName = (String) j.next();
-                    if(!colName.equals("apk")){
-                        newRow.add(
-                                GlobalRef.invocationMatrices.get(apkName).appMatrix.get(colName).toString()
-                        );
-                    }
-                }
-                toPrint.add(newRow);
-            }
-
-            StringBuilder sb = new StringBuilder();
-
-            for(Iterator i = toPrint.iterator(); i.hasNext();){
-                for(Iterator j = ((ArrayList<String>)i.next()).iterator(); j.hasNext();){
-                    sb.append(j.next());
-                    if(j.hasNext()){
-                        sb.append(',');
-                    }
-                }
-                sb.append("\n");
-            }
-
-            try {
-                Files.write(Paths.get(GlobalRef.outputDir + "APIs.csv"), sb.toString().getBytes());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }

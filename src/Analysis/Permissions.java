@@ -4,15 +4,6 @@ import java.util.HashMap;
 
 public class Permissions {
 
-    public static HashMap<String, Integer> PermissionLevels = new HashMap<String, Integer>(){
-        {
-            put("none", 0);
-            put("normal", 1);
-            put("dangerous", 2);
-            put("signature", 3);
-        }
-    };
-
     public static int checkPermissionLevel(String pName){
 
         for (String normal:Permissions.normal) {

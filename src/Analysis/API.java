@@ -18,8 +18,4 @@ public class API {
     public String getClassName() {
         return className;
     }
-
-    public String getPermissionText() {
-        return permissionText;
-    }
 }
